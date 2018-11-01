@@ -67,11 +67,12 @@ public class ApolloGraphQLMojo extends AbstractMojo {
             if (!queryDir.isDirectory()) {
                 throw new IllegalArgumentException(format("%s must be a directory", queryDir.getAbsoluteFile()));
             }
-            List<File> queries = walk(queryDir.toPath())
-                .filter(path -> path.toFile().isFile() && path.toFile().getName().endsWith(".graphql"))
-                .map(Path::toFile).collect(toList());
+            final List<File> queries =
+                walk(queryDir.toPath())
+                    .filter(path -> path.toFile().isFile() && path.toFile().getName().endsWith(".graphql"))
+                    .map(Path::toFile).collect(toList());
 
-            if (queries == null || queries.isEmpty()) {
+            if (queries.isEmpty()) {
                 throw new IllegalArgumentException(format("No queries found under %s", queryDir.getAbsolutePath()));
             }
             final File baseTargetDir = new File(this.project.getBuild().getDirectory(), join(File.separator,
@@ -90,7 +91,6 @@ public class ApolloGraphQLMojo extends AbstractMojo {
                 String path = resource.replaceFirst("/node_modules/", "").replace("/", File.separator);
                 File diskPath = new File(nodeModules, path);
                 diskPath.getParentFile().mkdirs();
-
                 copyURLToFile(getClass().getResource(resource), diskPath);
 
             }
@@ -109,11 +109,10 @@ public class ApolloGraphQLMojo extends AbstractMojo {
                     File src = new File(queryDir, query.getPath());
                     File dest = new File(baseTargetDir, query.getPath());
                     dest.getParentFile().mkdirs();
-
                     try {
                         Files.copy(Paths.get(src.getPath()), Paths.get(dest.getPath()));
-                    } catch (IOException ex) {
-                        getLog().error(ex);
+                    } catch (IOException e) {
+                        getLog().error(e);
                     }
                 }
             );
@@ -137,14 +136,23 @@ public class ApolloGraphQLMojo extends AbstractMojo {
             }
 
             GraphQLCompiler compiler = new GraphQLCompiler();
-            compiler.write(new GraphQLCompiler.Arguments(schema, outputDirectory, new HashMap<>(), NullableValueType.JAVA_OPTIONAL, true, true));
+            compiler.write(new GraphQLCompiler.Arguments(
+                schema,
+                outputDirectory,
+                new HashMap<>(),
+                NullableValueType.ANNOTATED,
+                true,
+                true,
+                true,
+                null));
 
-            if(this.addSourceRoot) {
+            if (this.addSourceRoot) {
                 project.addCompileSourceRoot(outputDirectory.getAbsolutePath());
             }
 
         } catch (InterruptedException | IOException ex) {
             getLog().error(ex);
+            throw new MojoExecutionException(ex.getMessage());
         }
 
     }
@@ -168,6 +176,5 @@ public class ApolloGraphQLMojo extends AbstractMojo {
         }
         throw new IllegalArgumentException(format("should have found the executable %s in PATH", name));
     }
-
 
 }
