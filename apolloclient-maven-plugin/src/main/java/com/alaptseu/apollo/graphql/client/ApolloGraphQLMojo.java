@@ -166,7 +166,7 @@ public class ApolloGraphQLMojo extends AbstractMojo {
 
     }
 
-    private static File findExecutableOnPath(String name) {
+    private static File findExecutableOnPath(final String name) {
         for (String dirName : System.getenv("PATH").split(File.pathSeparator)) {
             File file = new File(dirName, name);
             if (file.isFile() && file.canExecute()) {
