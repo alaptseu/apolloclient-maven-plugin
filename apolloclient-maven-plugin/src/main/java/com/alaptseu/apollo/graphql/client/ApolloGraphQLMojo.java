@@ -2,6 +2,7 @@ package com.alaptseu.apollo.graphql.client;
 
 import com.apollographql.apollo.compiler.GraphQLCompiler;
 import com.apollographql.apollo.compiler.NullableValueType;
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -70,7 +72,8 @@ public class ApolloGraphQLMojo extends AbstractMojo {
             final List<File> queries =
                 walk(queryDir.toPath())
                     .filter(path -> path.toFile().isFile() && path.toFile().getName().endsWith(".graphql"))
-                    .map(Path::toFile).collect(toList());
+                    .map(path -> queryDir.toPath().relativize(path).toFile())
+                    .collect(Collectors.toList());
 
             if (queries.isEmpty()) {
                 throw new IllegalArgumentException(format("No queries found under %s", queryDir.getAbsolutePath()));
@@ -78,9 +81,10 @@ public class ApolloGraphQLMojo extends AbstractMojo {
             final File baseTargetDir = new File(this.project.getBuild().getDirectory(), join(File.separator,
                 "graphql-schema", sourceDirName, basePackageDirName));
             final File schema = new File(baseTargetDir, "schema.json");
+
             File nodeModules = new File(project.getBuild().getDirectory(), join(File.separator,
-                "apollo-codegen-node-modules", "node_modules"));
-            deleteRecursively(nodeModules);
+                "apollo-node-modules", "node_modules"));
+            FileUtils.deleteDirectory(nodeModules);
             nodeModules.mkdirs();
 
             Set<String> nodeModuleResources = new Reflections(new ConfigurationBuilder().setScanners(new ResourcesScanner())
@@ -88,10 +92,10 @@ public class ApolloGraphQLMojo extends AbstractMojo {
                 .getResources(Pattern.compile(".*"));
 
             for (String resource : nodeModuleResources) {
-                String path = resource.replaceFirst("/node_modules/", "").replace("/", File.separator);
+                String path = resource.replaceFirst("node_modules/", "").replace("/", File.separator);
                 File diskPath = new File(nodeModules, path);
                 diskPath.getParentFile().mkdirs();
-                copyURLToFile(getClass().getResource(resource), diskPath);
+                copyURLToFile(getClass().getResource("/" + resource), diskPath);
 
             }
             File apolloCli = new File(nodeModules, join(File.separator, "apollo-codegen", "lib", "cli.js"));
@@ -105,12 +109,13 @@ public class ApolloGraphQLMojo extends AbstractMojo {
                 throw new IllegalStateException("Apollo codegen cli not found: '${apolloCli.absolutePath}'");
             }
             schema.getParentFile().mkdirs();
+
             queries.forEach(query -> {
                     File src = new File(queryDir, query.getPath());
                     File dest = new File(baseTargetDir, query.getPath());
                     dest.getParentFile().mkdirs();
                     try {
-                        Files.copy(Paths.get(src.getPath()), Paths.get(dest.getPath()));
+                        FileUtils.copyFile(src, dest);
                     } catch (IOException e) {
                         getLog().error(e);
                     }
@@ -121,12 +126,21 @@ public class ApolloGraphQLMojo extends AbstractMojo {
             getLog().info("Found node executable: ${node.absolutePath}");
 
             List<String> queriesList = queries.stream().map(file -> new File(baseTargetDir, file.getPath()).getAbsolutePath()).collect(Collectors.toList());
-            List<String> arguments = asList("generate",
-                join(" ", queriesList),
-                "--target", "json", "--schema", introspectionFile.getAbsolutePath(), "--output", schema.getAbsolutePath());
+            List<String> arguments = new LinkedList<>();
+            arguments.add(node.getAbsolutePath());
+            arguments.add(apolloCli.getAbsolutePath());
+            arguments.add("generate");
+            arguments.addAll(queriesList);
+            arguments.add("--target");
+            arguments.add("json");
+            arguments.add("--schema");
+            arguments.add(introspectionFile.getAbsolutePath());
+            arguments.add("--output");
+            arguments.add(schema.getAbsolutePath());
+
             getLog().info(format("Running apollo cli %s with arguments: %s}", apolloCli.getAbsoluteFile(), join(" ", arguments)));
 
-            Process proc = new ProcessBuilder(node.getAbsolutePath(), apolloCli.getAbsolutePath(), join(" ", arguments))
+            Process proc = new ProcessBuilder(arguments)
                 .directory(nodeModules.getParentFile())
                 .inheritIO()
                 .start();
@@ -157,15 +171,15 @@ public class ApolloGraphQLMojo extends AbstractMojo {
 
     }
 
-    private static boolean deleteRecursively(File dir) {
-        File[] allContents = dir.listFiles();
-        if (allContents != null) {
-            for (File file : allContents) {
-                deleteRecursively(file);
-            }
-        }
-        return dir.delete();
-    }
+//    private static boolean deleteRecursively(File dir) {
+//        File[] allContents = dir.listFiles();
+//        if (allContents != null) {
+//            for (File file : allContents) {
+//                deleteRecursively(file);
+//            }
+//        }
+//        return dir.delete();
+//    }
 
     private static File findExecutableOnPath(String name) {
         for (String dirName : System.getenv("PATH").split(File.pathSeparator)) {
