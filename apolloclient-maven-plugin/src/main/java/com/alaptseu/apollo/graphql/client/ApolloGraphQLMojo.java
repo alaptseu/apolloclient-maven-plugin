@@ -17,9 +17,6 @@ import org.reflections.util.ConfigurationBuilder;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,8 +27,6 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.nio.file.Files.walk;
-import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 import static org.apache.commons.io.FileUtils.copyURLToFile;
 
 /**
@@ -170,16 +165,6 @@ public class ApolloGraphQLMojo extends AbstractMojo {
         }
 
     }
-
-//    private static boolean deleteRecursively(File dir) {
-//        File[] allContents = dir.listFiles();
-//        if (allContents != null) {
-//            for (File file : allContents) {
-//                deleteRecursively(file);
-//            }
-//        }
-//        return dir.delete();
-//    }
 
     private static File findExecutableOnPath(String name) {
         for (String dirName : System.getenv("PATH").split(File.pathSeparator)) {
