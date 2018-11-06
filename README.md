@@ -1,1 +1,1 @@
-# apolloclient-maven-plugin
+# Apollo GraphQL Java Objects From Queries Generation Maven Plugin
