@@ -12,8 +12,8 @@
     <packaging>jar</packaging>
 
     <name>apolloclient-maven-plugin-tests</name>
-    <description>Test for maven plugin</description>
-    <url></url>
+    <description>Test for apollo maven plugin</description>
+    <url>https://github.com/alaptseu/apolloclient-maven-plugin</url>
 
     <properties>
         <maven.install.skip>true</maven.install.skip>
@@ -78,7 +78,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <basePackage>com.alaptseu.java.graphql.client.tests</basePackage>
+                            <basePackage>com.alaptseu.graphql.client.tests</basePackage>
                         </configuration>
                     </execution>
                 </executions>

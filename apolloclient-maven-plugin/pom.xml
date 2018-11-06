@@ -13,7 +13,7 @@
 
     <name>apolloclient-maven-plugin</name>
     <description>Maven plugin for generating graphql clients</description>
-    <url></url>
+    <url>https://github.com/alaptseu/apolloclient-maven-plugin</url>
 
     <developers>
         <developer>
